@@ -24,7 +24,6 @@ class TournamentRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'entry_fee' => 'required|numeric|min:0',
-            'manager_id' => 'required|exists:users,id',
         ];
     }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MemberRequest;
 use App\Http\Requests\TeamRequest;
 use App\Http\Resources\TeamResource;
+use App\Models\Team;
 use App\Repositories\TeamRepository;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class TeamController extends Controller
 {
@@ -21,7 +24,10 @@ class TeamController extends Controller
 
     public function store(TeamRequest $request)
     {
-        $team = $this->team_repository->create($request->validated());
+        $data = $request->validated();
+        $data['captain_id'] = Auth::id();
+
+        $team = $this->team_repository->create($data);
         return new TeamResource($team);
     }
 
@@ -56,6 +62,35 @@ class TeamController extends Controller
         }
 
         return response()->json(['message' => 'Team deleted successfully']);
+    }
+
+    public function addMember(MemberRequest $request, Team $team)
+    {
+        $this->authorize('isCaptain', $team);
+
+        $this->team_repository->addMember($team, $request->user_id);
+
+        return response()->json(['message' => 'Member added successfully']);
+    }
+
+    public function removeMember(MemberRequest $request, Team $team)
+    {
+        $this->authorize('isCaptain', $team);
+
+        $this->team_repository->removeMember($team, $request->user_id);
+
+        return response()->json(['message' => 'Member removed successfully']);
+    }
+
+    public function leaveTeam(Request $request, Team $team)
+    {
+        if (! $this->team_repository->isMemberOf($team, Auth::id())) {
+            throw new \Exception('you must be member of team');
+        }
+
+        $this->team_repository->removeMember($team, Auth::id());
+
+        return response()->json(['message' => 'Member leaved successfully']);
     }
 
 }
